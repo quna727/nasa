@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASA 소행성 정보 조회</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0b0d17;
+            color: #ffffff;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 { text-align: center; color: #4db8ff; }
+        .search-box {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: #15192b;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        input[type="date"], button {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: none;
+        }
+        button {
+            background-color: #4db8ff;
+            color: #0b0d17;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover { background-color: #3399ff; }
+        .asteroid-card {
+            background: #1d2238;
+            border-left: 5px solid #4db8ff;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        .hazardous { border-left-color: #ff4d4d; }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-danger { background: #ff4d4d; color: white; }
+        .badge-safe { background: #4caf50; color: white; }
+        #loading { text-align: center; display: none; }
+    </style>
+</head>
+<body>
+
+    <h1>🌌 NASA 소행성 탐색기</h1>
+    
+    <div class="search-box">
+        <input type="date" id="searchDate">
+        <button onclick="fetchAsteroids()">조회하기</button>
+    </div>
+
+    <div id="loading">데이터를 불러오는 중입니다...</div>
+    <div id="results"></div>
+
+    <script>
+        // 발급받으신 API 키 설정
+        const API_KEY = 'YVmjpKwHIWHqINjw7cF6YXpRbtEp7WDqrLDauPlo';
+
+        // 페이지 로드 시 오늘 날짜 기본 세팅
+        document.getElementById('searchDate').valueAsDate = new Date();
+
+        async function fetchAsteroids() {
+            const dateInput = document.getElementById('searchDate').value;
+            if (!dateInput) {
+                alert('날짜를 선택해 주세요.');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('results');
+            const loadingDiv = document.getElementById('loading');
+            
+            resultsDiv.innerHTML = '';
+            loadingDiv.style.display = 'block';
+
+            const url = `https://api.nasa.gov/neo/rest/v1/feed?start_date=${dateInput}&end_date=${dateInput}&api_key=${API_KEY}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                loadingDiv.style.display = 'none';
+
+                const asteroids = data.near_earth_objects[dateInput];
+
+                if (!asteroids || asteroids.length === 0) {
+                    resultsDiv.innerHTML = '<p style="text-align:center;">해당 날짜에 감지된 소행성이 없습니다.</p>';
+                    return;
+                }
+
+                resultsDiv.innerHTML = `<h3>총 ${asteroids.length}개의 소행성이 근접합니다.</h3>`;
+
+                asteroids.forEach(asteroid => {
+                    const isHazardous = asteroid.is_potentially_hazardous_asteroid;
+                    const diameter = asteroid.estimated_diameter.meters.estimated_diameter_max.toFixed(2);
+                    const missDistance = Math.round(asteroid.close_approach_data[0].miss_distance.kilometers).toLocaleString();
+                    const velocity = parseFloat(asteroid.close_approach_data[0].relative_velocity.kilometers_per_hour).toFixed(2);
+
+                    const card = document.createElement('div');
+                    card.className = `asteroid-card ${isHazardous ? 'hazardous' : ''}`;
+                    
+                    card.innerHTML = `
+                        <h2>
+                            ${asteroid.name} 
+                            <span class="badge ${isHazardous ? 'badge-danger' : 'badge-safe'}">
+                                ${isHazardous ? '위험 소행성' : '안전'}
+                            </span>
+                        </h2>
+                        <p>📏 <strong>추정 크기(최대 지름):</strong> 약 ${diameter}m</p>
+                        <p>🚀 <strong>상대 속도:</strong> 시속 ${Number(velocity).toLocaleString()} km/h</p>
+                        <p>🌍 <strong>지구와의 최단 거리:</strong> ${missDistance} km</p>
+                    `;
+                    resultsDiv.appendChild(card);
+                });
+
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                resultsDiv.innerHTML = '<p style="text-align:center; color:#ff4d4d;">데이터를 불러오는 중 오류가 발생했습니다.</p>';
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
