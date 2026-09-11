@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NASA 소행성 정보 조회</title>
+    <title>NASA 천체 사진 & 소행성 정보 조회</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #0b0d17;
             color: #ffffff;
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -36,6 +36,30 @@
             cursor: pointer;
         }
         button:hover { background-color: #3399ff; }
+        
+        /* APOD 카드 스타일 */
+        .apod-card {
+            background: #15192b;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .apod-card img, .apod-card iframe {
+            width: 100%;
+            max-height: 500px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        .apod-explanation {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #cccccc;
+            margin-top: 15px;
+        }
+
+        /* 소행성 카드 스타일 */
         .asteroid-card {
             background: #1d2238;
             border-left: 5px solid #4db8ff;
@@ -53,57 +77,106 @@
         }
         .badge-danger { background: #ff4d4d; color: white; }
         .badge-safe { background: #4caf50; color: white; }
-        #loading { text-align: center; display: none; }
+        #loading { text-align: center; display: none; margin: 20px 0; }
     </style>
 </head>
 <body>
 
-    <h1>🌌 NASA 소행성 탐색기</h1>
+    <h1>🌌 NASA 오늘의 우주 & 소행성 탐색기</h1>
     
     <div class="search-box">
         <input type="date" id="searchDate">
-        <button onclick="fetchAsteroids()">조회하기</button>
+        <button onclick="fetchAllData()">조회하기</button>
     </div>
 
-    <div id="loading">데이터를 불러오는 중입니다...</div>
+    <div id="loading">데이터와 사진을 불러오는 중입니다...</div>
+    
+    <!-- APOD 영역 -->
+    <div id="apod-section"></div>
+    
+    <!-- 소행성 목록 영역 -->
     <div id="results"></div>
 
     <script>
-        // 발급받으신 API 키 설정
         const API_KEY = 'YVmjpKwHIWHqINjw7cF6YXpRbtEp7WDqrLDauPlo';
 
-        // 페이지 로드 시 오늘 날짜 기본 세팅
+        // 기본 오늘 날짜 설정
         document.getElementById('searchDate').valueAsDate = new Date();
 
-        async function fetchAsteroids() {
+        function fetchAllData() {
             const dateInput = document.getElementById('searchDate').value;
             if (!dateInput) {
                 alert('날짜를 선택해 주세요.');
                 return;
             }
 
-            const resultsDiv = document.getElementById('results');
             const loadingDiv = document.getElementById('loading');
-            
-            resultsDiv.innerHTML = '';
             loadingDiv.style.display = 'block';
 
-            const url = `https://api.nasa.gov/neo/rest/v1/feed?start_date=${dateInput}&end_date=${dateInput}&api_key=${API_KEY}`;
+            // 두 API 동시 요청
+            Promise.all([
+                fetchApodData(dateInput),
+                fetchAsteroidData(dateInput)
+            ]).finally(() => {
+                loadingDiv.style.display = 'none';
+            });
+        }
+
+        // 1. 선택한 날짜의 천체 사진(APOD) 가져오기
+        async function fetchApodData(date) {
+            const apodDiv = document.getElementById('apod-section');
+            apodDiv.innerHTML = '';
+
+            // 최신 WordPress 기반 API 또는 기본 APOD Endpoint 활용
+            const url = `https://science.nasa.gov/wp-json/wp/v2/apod-basic?date=${date}&api_key=${API_KEY}`;
 
             try {
                 const response = await fetch(url);
                 const data = await response.json();
-                
-                loadingDiv.style.display = 'none';
 
-                const asteroids = data.near_earth_objects[dateInput];
+                // 배열로 들어오는 경우 첫 번째 항목 선택
+                const item = Array.isArray(data) ? data[0] : data;
+
+                if (item) {
+                    let mediaHtml = '';
+                    if (item.hdurl || item.url) {
+                        mediaHtml = `<img src="${item.hdurl || item.url}" alt="${item.title || 'APOD Image'}">`;
+                    }
+
+                    apodDiv.innerHTML = `
+                        <div class="apod-card">
+                            <h2>🖼️ 오늘의 천체 사진: ${item.title || '제목 없음'}</h2>
+                            ${mediaHtml}
+                            <p class="apod-explanation">${item.explanation || ''}</p>
+                            ${item.copyright ? `<p style="font-size:12px; color:#888;">© ${item.copyright}</p>` : ''}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('APOD 로드 오류:', error);
+                apodDiv.innerHTML = '<p style="color:#ff4d4d;">해당 날짜의 천체 사진 정보를 가져오지 못했습니다.</p>';
+            }
+        }
+
+        // 2. 선택한 날짜의 지구 근접 소행성(NeoWs) 가져오기
+        async function fetchAsteroidData(date) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            const url = `https://api.nasa.gov/neo/rest/v1/feed?start_date=${date}&end_date=${date}&api_key=${API_KEY}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                const asteroids = data.near_earth_objects[date];
 
                 if (!asteroids || asteroids.length === 0) {
                     resultsDiv.innerHTML = '<p style="text-align:center;">해당 날짜에 감지된 소행성이 없습니다.</p>';
                     return;
                 }
 
-                resultsDiv.innerHTML = `<h3>총 ${asteroids.length}개의 소행성이 근접합니다.</h3>`;
+                resultsDiv.innerHTML = `<h2>☄️ ${date} 근접 소행성 목록 (총 ${asteroids.length}개)</h2>`;
 
                 asteroids.forEach(asteroid => {
                     const isHazardous = asteroid.is_potentially_hazardous_asteroid;
@@ -115,12 +188,12 @@
                     card.className = `asteroid-card ${isHazardous ? 'hazardous' : ''}`;
                     
                     card.innerHTML = `
-                        <h2>
+                        <h3>
                             ${asteroid.name} 
                             <span class="badge ${isHazardous ? 'badge-danger' : 'badge-safe'}">
                                 ${isHazardous ? '위험 소행성' : '안전'}
                             </span>
-                        </h2>
+                        </h3>
                         <p>📏 <strong>추정 크기(최대 지름):</strong> 약 ${diameter}m</p>
                         <p>🚀 <strong>상대 속도:</strong> 시속 ${Number(velocity).toLocaleString()} km/h</p>
                         <p>🌍 <strong>지구와의 최단 거리:</strong> ${missDistance} km</p>
@@ -129,9 +202,8 @@
                 });
 
             } catch (error) {
-                loadingDiv.style.display = 'none';
-                resultsDiv.innerHTML = '<p style="text-align:center; color:#ff4d4d;">데이터를 불러오는 중 오류가 발생했습니다.</p>';
-                console.error(error);
+                console.error('소행성 로드 오류:', error);
+                resultsDiv.innerHTML = '<p style="text-align:center; color:#ff4d4d;">소행성 데이터를 불러오는 중 오류가 발생했습니다.</p>';
             }
         }
     </script>
