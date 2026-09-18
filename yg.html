@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고양시 약국 검색 지도</title>
+    <!-- 카카오맵 API 불러오기 (services 라이브러리 포함) -->
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=cc56435398f9d272918b6e8f89c3a42a&libraries=services"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 왼쪽 사이드바 (라임 테마) */
+        #sidebar {
+            width: 360px;
+            height: 100%;
+            background-color: #f7ffe6; /* 연한 라임 배경 */
+            border-right: 2px solid #d0f0c0;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-header {
+            padding: 20px;
+            background-color: #dfff4f; /* 핵심 라임 컬러 */
+            border-bottom: 1px solid #c2ed30;
+        }
+
+        .search-header h2 {
+            font-size: 1.2rem;
+            color: #1b4332;
+            margin-bottom: 12px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #a3e048;
+            border-radius: 6px;
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .input-group input:focus {
+            border-color: #2d6a4f;
+        }
+
+        /* 진한 초록색 버튼 */
+        .input-group button {
+            padding: 10px 16px;
+            background-color: #1b4332; /* 진한 초록색 */
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .input-group button:hover {
+            background-color: #2d6a4f;
+        }
+
+        /* 검색 결과 목록 */
+        #placesList {
+            flex: 1;
+            overflow-y: auto;
+            list-style: none;
+            padding: 10px;
+        }
+
+        #placesList .item {
+            padding: 15px;
+            margin-bottom: 8px;
+            background-color: #ffffff;
+            border: 1px solid #e1f5fe;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #placesList .item:hover {
+            border-color: #2d6a4f;
+            background-color: #f0fdf4;
+            transform: translateY(-2px);
+        }
+
+        #placesList .item h5 {
+            font-size: 1rem;
+            color: #1b4332;
+            margin-bottom: 4px;
+        }
+
+        #placesList .item p {
+            font-size: 0.85rem;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        #placesList .item .phone {
+            color: #2d6a4f;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        /* 오른쪽 지도 영역 */
+        #map {
+            flex: 1;
+            height: 100%;
+        }
+
+        /* 인포윈도우 스타일 */
+        .info-window {
+            padding: 10px;
+            font-size: 0.85rem;
+            color: #333;
+            max-width: 200px;
+        }
+        .info-window strong {
+            color: #1b4332;
+            display: block;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 왼쪽 사이드바 -->
+    <div id="sidebar">
+        <div class="search-header">
+            <h2>🌿 고양시 약국 검색</h2>
+            <div class="input-group">
+                <input type="text" id="keyword" placeholder="약국 이름 입력 (예: 화정, 주엽)" value="주엽">
+                <button onclick="searchPlaces()">검색</button>
+            </div>
+        </div>
+        <ul id="placesList"></ul>
+    </div>
+
+    <!-- 오른쪽 카카오맵 -->
+    <div id="map"></div>
+
+    <script>
+        // 1. 지도 생성 (초기 중심 좌표: 고양시청 근처)
+        const container = document.getElementById('map');
+        const options = {
+            center: new kakao.maps.LatLng(37.6583599, 126.832001), 
+            level: 5
+        };
+        const map = new kakao.maps.Map(container, options);
+
+        // 장소 검색 객체 및 마커 관리 배열 생성
+        const ps = new kakao.maps.services.Places();
+        const infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
+        let markers = [];
+
+        // 엔터키 검색 이벤트 등록
+        document.getElementById('keyword').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                searchPlaces();
+            }
+        });
+
+        // 페이지 로드 시 기본 검색 실행
+        searchPlaces();
+
+        // 2. 장소 검색 함수
+        function searchPlaces() {
+            const keyword = document.getElementById('keyword').value.trim();
+
+            if (!keyword) {
+                alert('검색어를 입력해주세요!');
+                return;
+            }
+
+            // 검색 키워드에 '고양시'와 '약국'을 조합하여 검색 정확도 향상
+            const searchQuery = `고양시 ${keyword} 약국`;
+            ps.keywordSearch(searchQuery, placesSearchCB);
+        }
+
+        // 3. 검색 결과 콜백 함수
+        function placesSearchCB(data, status, pagination) {
+            if (status === kakao.maps.services.Status.OK) {
+                displayPlaces(data);
+            } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
+                alert('검색 결과가 존재하지 않습니다.');
+                clearPlacesList();
+            } else if (status === kakao.maps.services.Status.ERROR) {
+                alert('검색 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 4. 검색 결과 및 마커 표출 함수
+        function displayPlaces(places) {
+            const listEl = document.getElementById('placesList');
+            const bounds = new kakao.maps.LatLngBounds();
+
+            // 기존 검색 목록 및 마커 제거
+            clearPlacesList();
+            removeMarkers();
+
+            places.forEach((place, i) => {
+                const placePosition = new kakao.maps.LatLng(place.y, place.x);
+                const marker = addMarker(placePosition);
+                const itemEl = createListItem(place, i);
+
+                // 지도 영역 재설정을 위한 위치 추가
+                bounds.extend(placePosition);
+
+                // 마커 및 목록 항목 이벤트 바인딩
+                (function (marker, title, address) {
+                    kakao.maps.event.addListener(marker, 'click', function () {
+                        displayInfoWindow(marker, title, address);
+                    });
+
+                    itemEl.onclick = function () {
+                        displayInfoWindow(marker, title, address);
+                        map.panTo(placePosition);
+                    };
+                })(marker, place.place_name, place.road_address_name || place.address_name);
+
+                listEl.appendChild(itemEl);
+            });
+
+            // 검색된 장소들을 포함하도록 지도 범위 재설정
+            map.setBounds(bounds);
+        }
+
+        // 5. 마커 생성 함수
+        function addMarker(position) {
+            const marker = new kakao.maps.Marker({
+                position: position,
+                map: map
+            });
+            markers.push(marker);
+            return marker;
+        }
+
+        // 6. 목록 아이템 HTML 생성 함수
+        function createListItem(place, index) {
+            const el = document.createElement('li');
+            el.className = 'item';
+            
+            let content = `<h5>${place.place_name}</h5>`;
+            if (place.road_address_name) {
+                content += `<p>${place.road_address_name}</p>`;
+            } else {
+                content += `<p>${place.address_name}</p>`;
+            }
+            if (place.phone) {
+                content += `<p class="phone">${place.phone}</p>`;
+            }
+
+            el.innerHTML = content;
+            return el;
+        }
+
+        // 7. 인포윈도우 표시 함수
+        function displayInfoWindow(marker, title, address) {
+            const content = `
+                <div class="info-window">
+                    <strong>${title}</strong>
+                    <span>${address}</span>
+                </div>
+            `;
+            infowindow.setContent(content);
+            infowindow.open(map, marker);
+        }
+
+        // 기존 마커 및 목록 정리 함수
+        function removeMarkers() {
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+        }
+
+        function clearPlacesList() {
+            const listEl = document.getElementById('placesList');
+            listEl.innerHTML = '';
+        }
+    </script>
+</body>
+</html>
