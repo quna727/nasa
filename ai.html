@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>토닥 - AI 마음 상담실</title>
+  <style>
+    :root {
+      --primary-color: #7b61ff;
+      --secondary-color: #f3f0ff;
+      --bg-color: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+      --sub-text: #666666;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      background-color: var(--card-bg);
+      width: 100%;
+      max-width: 500px;
+      padding: 30px 25px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 12px;
+      color: var(--text-color);
+      word-break: keep-all;
+    }
+
+    p {
+      font-size: 0.95rem;
+      color: var(--sub-text);
+      line-height: 1.5;
+      margin-bottom: 20px;
+      word-break: keep-all;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 12px;
+      background-color: var(--secondary-color);
+      color: var(--primary-color);
+      border-radius: 15px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    /* Type Select Screen */
+    .type-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 15px;
+      max-height: 380px;
+      overflow-y: auto;
+    }
+
+    .type-card {
+      padding: 14px 16px;
+      border: 1.5px solid #e9ecef;
+      border-radius: 12px;
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .type-card:hover {
+      border-color: var(--primary-color);
+      background-color: var(--secondary-color);
+    }
+
+    .type-card .title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 4px;
+    }
+
+    .type-card .sub {
+      font-size: 0.82rem;
+      color: #666;
+    }
+
+    /* Chat Screen */
+    .chat-header {
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-title-text {
+      text-align: left;
+    }
+
+    .chat-title-text h2 {
+      font-size: 1.1rem;
+      color: var(--primary-color);
+    }
+
+    .chat-title-text span {
+      font-size: 0.8rem;
+      color: #888;
+    }
+
+    .reset-btn {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .chat-box {
+      height: 380px;
+      overflow-y: auto;
+      border: 1px solid #e9ecef;
+      border-radius: 12px;
+      padding: 15px;
+      background-color: #fafafa;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      word-break: keep-all;
+      text-align: left;
+    }
+
+    .bot-msg {
+      align-self: flex-start;
+      background-color: #ffffff;
+      border: 1px solid #e2e2e2;
+      color: #333;
+      border-top-left-radius: 4px;
+    }
+
+    .user-msg {
+      align-self: flex-end;
+      background-color: var(--primary-color);
+      color: white;
+      border-top-right-radius: 4px;
+    }
+
+    .chat-input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 12px 15px;
+      border: 1.5px solid #e9ecef;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .chat-input:focus {
+      border-color: var(--primary-color);
+    }
+
+    .chat-send-btn {
+      padding: 0 18px;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- 1. 유형 선택 화면 (테스트 없음) -->
+    <div class="screen active" id="select-screen">
+      <span class="badge">토닥 AI 마음 상담실</span>
+      <h1>어떤 결핍으로 고민이신가요?</h1>
+      <p>상담받고 싶은 내면의 유형을 선택하시면 맞춤 AI 상담이 바로 시작됩니다.</p>
+      <div class="type-list" id="type-list"></div>
+    </div>
+
+    <!-- 2. AI 상담실 화면 -->
+    <div class="screen" id="chat-screen">
+      <div class="chat-header">
+        <div class="chat-title-text">
+          <h2 id="chat-type-name">상담실</h2>
+          <span id="chat-type-desc">맞춤형 대화 진행 중</span>
+        </div>
+        <button class="reset-btn" onclick="showSelectScreen()">유형 변경</button>
+      </div>
+
+      <div class="chat-box" id="chat-box"></div>
+
+      <div class="chat-input-group">
+        <input type="text" id="chat-input" class="chat-input" placeholder="상황이나 마음을 자유롭게 이야기하세요..." onkeypress="handleKeyPress(event)" />
+        <button class="chat-send-btn" onclick="sendMessage()">전송</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 7가지 결핍 유형 정의
+    const types = {
+      affection: {
+        name: "애정결핍",
+        code: "<꼬꼬형>",
+        animal: "타조 🦩",
+        sub: "사랑/돌봄의 부족, 관계 회피 및 과도한 집착",
+        welcome: "안녕하세요! 애정결핍 <꼬꼬형> 상담실입니다. 사랑이나 관심이 고프고, 사람이 미우면서도 불안했던 순간이 있으셨나요? 어떤 상황인지 들려주세요."
+      },
+      recognition: {
+        name: "인정결핍",
+        code: "<끼끼형>",
+        animal: "원숭이 🐒",
+        sub: "인정받고 싶은 욕구, 성과 및 남의 시선 집착",
+        welcome: "반갑습니다! 인정결핍 <끼끼형> 상담실입니다. 남들의 시선이나 평가 때문에 지치거나, 아무리 해도 인정받지 못한 기분이 드시나요?"
+      },
+      isolation: {
+        name: "소외감 및 사회적 고립",
+        code: "<또치형>",
+        animal: "고슴도치 🦔",
+        sub: "소속감 부재, 겉도는 느낌, 깊은 외로움",
+        welcome: "어서오세요. 소외감 <또치형> 상담실입니다. 무리 속에 있어도 혼자인 것 같고 외로웠던 경험에 대해 이야기를 나눠보아요."
+      },
+      selfesteem: {
+        name: "자존감(수치심) 결핍",
+        code: "<밤또리형>",
+        animal: "밤톨 🌰",
+        sub: "자책, 내면의 수치심과 스스로에 대한 불안",
+        welcome: "안녕하세요! 자존감 결핍 <밤또리형> 상담실입니다. 스스로가 부족해 보이고, 남들에게 내 진짜 모습을 숨기고 싶었던 때가 있었나요?"
+      },
+      dependency: {
+        name: "의존성 결핍",
+        code: "<삐약형>",
+        animal: "병아리 🐥",
+        sub: "자립의 두려움, 무능감, 타인 의존",
+        welcome: "반갑습니다. 의존성 결핍 <삐약형> 상담실입니다. 혼자 판단하고 일어서는 것이 막막하고 누군가에게 의지하고 싶은 상황이신가요?"
+      },
+      selfobject: {
+        name: "자기 대상 결핍",
+        code: "<펭이형>",
+        animal: "펭귄 🐧",
+        sub: "반응 부족으로 인한 마음속 텅 빈 공허감",
+        welcome: "어서오세요. 자기 대상 결핍 <펭이형> 상담실입니다. 가슴속 한구석이 텅 비어있고 세상과 단절된 것 같은 공허함이 드나요?"
+      },
+      trust: {
+        name: "신뢰 결핍",
+        code: "<까까형>",
+        animal: "선인장 🌵",
+        sub: "배신/기만 상처, 세상과 사람에 대한 경계",
+        welcome: "안녕하세요. 신뢰 결핍 <까까형> 상담실입니다. 상처받을까 봐 마음의 벽을 치고 사람을 믿기 힘들었던 마음을 편하게 이야기해 주세요."
+      }
+    };
+
+    let selectedType = 'affection';
+
+    // 유형 선택 화면 생성
+    function initTypeSelect() {
+      const listContainer = document.getElementById('type-list');
+      listContainer.innerHTML = '';
+
+      for (let key in types) {
+        const item = types[key];
+        const card = document.createElement('div');
+        card.className = 'type-card';
+        card.innerHTML = `
+          <div class="title">${item.name} ${item.code} ${item.animal}</div>
+          <div class="sub">${item.sub}</div>
+        `;
+        card.onclick = () => startChat(key);
+        listContainer.appendChild(card);
+      }
+    }
+
+    function showSelectScreen() {
+      document.getElementById('chat-screen').classList.remove('active');
+      document.getElementById('select-screen').classList.add('active');
+    }
+
+    function startChat(key) {
+      selectedType = key;
+      const typeData = types[key];
+
+      document.getElementById('select-screen').classList.remove('active');
+      document.getElementById('chat-screen').classList.add('active');
+
+      document.getElementById('chat-type-name').innerText = `${typeData.name} ${typeData.code}`;
+      document.getElementById('chat-type-desc').innerText = `${typeData.animal} 심리 상담 진행 중`;
+
+      const chatBox = document.getElementById('chat-box');
+      chatBox.innerHTML = '';
+      addMessage(typeData.welcome, 'bot');
+    }
+
+    function addMessage(text, sender) {
+      const chatBox = document.getElementById('chat-box');
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `message ${sender === 'user' ? 'user-msg' : 'bot-msg'}`;
+      msgDiv.innerText = text;
+      chatBox.appendChild(msgDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      addMessage(text, 'user');
+      input.value = '';
+
+      // 동적 문맥 분석 기반 AI 답변 생성
+      setTimeout(() => {
+        const botReply = generateSmartResponse(text, selectedType);
+        addMessage(botReply, 'bot');
+      }, 600);
+    }
+
+    function handleKeyPress(e) {
+      if (e.key === 'Enter') sendMessage();
+    }
+
+    // 💡 사용자의 실제 입력 문장을 다각도로 분석하여 맞춤 답변을 조합하는 엔진
+    function generateSmartResponse(userText, typeKey) {
+      const typeData = types[typeKey];
+
+      // 1. 핵심 주제/상황 파악
+      let situation = "";
+      if (userText.match(/친구|사람|상대|그 사람|타인|남들|인간관계|가족|연인/)) {
+        situation = "관계 속에서 겪은 상처나 마찰";
+      } else if (userText.match(/일|회사|학교|성적|시험|공부|성과|인정|잘못/)) {
+        situation = "무언가를 해내야 한다는 압박과 과제";
+      } else if (userText.match(/혼자|아무도|외롭|동떨어|소외|버려/)) {
+        situation = "혼자라는 고립감과 쓸쓸함";
+      } else if (userText.match(/망했|망치|바보|못해|실수|자책|부족/)) {
+        situation = "스스로를 탓하게 되는 상황";
+      } else {
+        situation = "마음속에 무겁게 얹혀있던 그 이야기";
+      }
+
+      // 2. 감정 상태 분석
+      let emotionPart = "";
+      if (userText.match(/화|짜증|열받|억울|열나|빡치|열/)) {
+        emotionPart = "얼마나 분하고 억울하셨을지 마음이 너무 답답하셨겠어요. 화가 나는 건 당연한 반응이에요.";
+      } else if (userText.match(/슬프|눈물|우울|속상|아프|지침|힘들|피곤/)) {
+        emotionPart = "많이 지치고 가슴이 아프셨겠어요. 마음을 이렇게 꺼내놓는 것조차 에너지가 많이 드셨을 텐데요.";
+      } else if (userText.match(/불안|두렵|무섭|걱정|막막|떨려/)) {
+        emotionPart = "앞이 막막하고 마음이 불안해서 한시도 편하지 않으셨을 것 같아요.";
+      } else {
+        emotionPart = "그동안 마음속에 담아두느라 얼마나 속앓이를 하셨을까요.";
+      }
+
+      // 3. 결핍 유형별 맞춤 위로 및 솔루션
+      let typeAdvice = "";
+      switch (typeKey) {
+        case 'affection':
+          typeAdvice = `특히 ${typeData.name}를 느낄 때는 타인의 작은 반응에도 내 존재가 흔들리기 쉬워요. 상 상대방의 태도보다 '내 마음이 얼마나 애썼는지'를 먼저 다독여주세요.`;
+          break;
+        case 'recognition':
+          typeAdvice = `남들에게 인정받지 않아도, 성과가 조금 부족해도 당신이라는 존재 자체의 가치는 절대 줄어들지 않아요. 남의 기준에 자신을 맞추느라 애쓰지 않아도 괜찮습니다.`;
+          break;
+        case 'isolation':
+          typeAdvice = `외로움의 가시는 나를 지키려는 방어막일 뿐이에요. 비록 지금은 외롭더라도, 당신의 진심을 알아봐 줄 정서적 안식처는 반드시 존재합니다.`;
+          break;
+        case 'selfesteem':
+          typeAdvice = `스스로에게 너무 엄격한 잣대를 대지 말아 주세요. 완벽하지 않아도, 조금 실수를 했어도 당신은 충분히 따뜻하고 가치 있는 사람입니다.`;
+          break;
+        case 'dependency':
+          typeAdvice = `혼자 바로 서는 것이 두렵겠지만, 지금 이렇게 자신의 감정을 마주하고 표현한 것부터 이미 주체적인 첫걸음을 내딛으신 거예요. 당신은 생각보다 훨씬 강합니다.`;
+          break;
+        case 'selfobject':
+          typeAdvice = `공허하고 텅 빈 마음은 당신이 진정한 따뜻함을 갈망하고 있다는 증거입니다. 오늘 이곳에서 나누는 대화가 마음의 빈 자리를 조금이라도 채워주었으면 합니다.`;
+          break;
+        case 'trust':
+          typeAdvice = `상처받지 않으려고 마음의 벽을 세운 자신을 자책하지 마세요. 그만큼 당신이 자신을 보호하기 위해 최선을 다해온 것이니까요. 천천히 마음의 페이스를 찾아가요.`;
+          break;
+      }
+
+      // 4. 응원의 메시지
+      const cheer = ` 오늘 전해주신 이야기("${userText.length > 15 ? userText.substring(0, 15) + '...' : userText}")는 결코 가벼운 고민이 아닙니다. 지금 이 순간만큼은 스스로를 '토닥'여주며 고생했다고 말해주시면 좋겠습니다.`;
+
+      // 문맥 조합 후 반환
+      return `${situation} 때문에 ${emotionPart} ${typeAdvice}${cheer}`;
+    }
+
+    // 초기화
+    initTypeSelect();
+  </script>
+</body>
+</html>
