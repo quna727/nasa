@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>토닥 - 나의 내면 결핍 유형 테스트</title>
+  <style>
+    :root {
+      --primary-color: #7b61ff;
+      --secondary-color: #f3f0ff;
+      --bg-color: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+      --sub-text: #666666;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      background-color: var(--card-bg);
+      width: 100%;
+      max-width: 500px;
+      padding: 30px 25px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      text-align: center;
+      position: relative;
+    }
+
+    /* Progress Bar */
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background-color: var(--secondary-color);
+      border-radius: 4px;
+      margin-bottom: 25px;
+      overflow: hidden;
+    }
+
+    .progress {
+      width: 0%;
+      height: 100%;
+      background-color: var(--primary-color);
+      transition: width 0.3s ease;
+    }
+
+    /* Screen Elements */
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 15px;
+      color: var(--text-color);
+      word-break: keep-all;
+    }
+
+    p {
+      font-size: 0.95rem;
+      color: var(--sub-text);
+      line-height: 1.6;
+      margin-bottom: 25px;
+      word-break: keep-all;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 15px;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .btn:hover {
+      background-color: #654ae6;
+    }
+
+    /* Question Screen */
+    .question-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 25px;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      word-break: keep-all;
+    }
+
+    .option-btn {
+      width: 100%;
+      padding: 16px;
+      margin-bottom: 12px;
+      background-color: #f8f9fa;
+      border: 1.5px solid #e9ecef;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      color: var(--text-color);
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      word-break: keep-all;
+    }
+
+    .option-btn:hover {
+      background-color: var(--secondary-color);
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+
+    /* Result Screen */
+    .result-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background-color: var(--secondary-color);
+      color: var(--primary-color);
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+
+    .result-type {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      margin-bottom: 10px;
+    }
+
+    .result-symbol {
+      font-size: 1.1rem;
+      color: #888;
+      margin-bottom: 20px;
+    }
+
+    .result-desc {
+      background-color: #f8f9fa;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: left;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #495057;
+      margin-bottom: 25px;
+    }
+
+    .kit-box {
+      border: 1px dashed var(--primary-color);
+      background-color: #fbfaff;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      font-size: 0.9rem;
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="progress-bar">
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- 1. 시작 화면 -->
+    <div class="screen active" id="start-screen">
+      <span class="result-badge">토닥(TODAK) 심리 테스트</span>
+      <h1>나의 내면 결핍 유형<br>테스트</h1>
+      <p>타인을 향한 불편한 감정이나 내면의 불안은 마음속 작은 결핍에서 시작됩니다. 질문에 솔직하게 답하고 나의 '토닥이 유형'을 확인해 보세요.</p>
+      <button class="btn" onclick="startTest()">테스트 시작하기</button>
+    </div>
+
+    <!-- 2. 질문 화면 -->
+    <div class="screen" id="question-screen">
+      <div class="question-title" id="question-text">질문이 여기에 표시됩니다.</div>
+      <div id="options-container">
+        <!-- 선택지 버튼이 동적으로 생성됩니다 -->
+      </div>
+    </div>
+
+    <!-- 3. 결과 화면 -->
+    <div class="screen" id="result-screen">
+      <span class="result-badge">당신의 내면 마음 유형</span>
+      <div class="result-type" id="result-title">결과 유형</div>
+      <div class="result-symbol" id="result-symbol">동물/상징</div>
+      <div class="result-desc" id="result-desc">유형 설명</div>
+      <div class="kit-box" id="result-kit">
+        💡 당신을 위한 맞춤 솔루션 & 취미 키트가 준비되어 있습니다.
+      </div>
+      <button class="btn" onclick="restartTest()">다시 테스트하기</button>
+    </div>
+  </div>
+
+  <script>
+    // 7가지 결핍 유형 정의
+    const types = {
+      affection: {
+        name: "애정결핍 (정서적 결핍)",
+        code: "<꼬꼬형>",
+        animal: "타조 🦩",
+        desc: "사랑과 돌봄, 안정적인 애착을 경험하지 못해 타인의 관심을 과도하게 갈구하거나 반대로 관계를 아예 회피해 버리는 상태입니다."
+      },
+      recognition: {
+        name: "인정결핍",
+        code: "<끼끼형>",
+        animal: "원숭이 🐒",
+        desc: "타인에게 가치 있는 존재로 인정받고 싶은 욕구가 채워지지 않아, 성과나 타인의 시선과 평가에 지나치게 집착하게 되는 상태입니다."
+      },
+      isolation: {
+        name: "소외감 및 사회적 고립",
+        code: "<또치형>",
+        animal: "고슴도치 🦔",
+        desc: "어디에도 속해 있지 못하다는 느낌을 받으며, 집단 속에서도 소외되거나 혼자라는 깊은 외로움을 경험하는 상태입니다."
+      },
+      selfesteem: {
+        name: "자존감(결함/수치심) 결핍",
+        code: "<밤또리형>",
+        animal: "밤톨 🌰",
+        desc: "스스로를 가치 있는 존재로 여지지 못하고, 내면의 결함이나 수치심 때문에 지속적인 불안과 자기 비하를 느끼는 상태입니다."
+      },
+      dependency: {
+        name: "의존성 결핍",
+        code: "<삐약형>",
+        animal: "병아리 🐥",
+        desc: "주체적으로 서지 못하고 타인에게 전적으로 의존하려 하거나, 혼자서는 아무것도 할 수 없다는 무능감에 빠지기 쉬운 상태입니다."
+      },
+      selfobject: {
+        name: "자기 대상 결핍",
+        code: "<펭이형>",
+        animal: "펭귄 🐧",
+        desc: "성장 과정에서 건강한 자아 형성에 필요한 반응을 받지 못해 발생하는 심리적 상태로, 사회에서 동떨어진 것 같은 공허감을 느낍니다."
+      },
+      trust: {
+        name: "신뢰 결핍 (Trust Deficit)",
+        code: "<까까형>",
+        animal: "선인장 🌵",
+        desc: "배신이나 기만, 가스라이팅의 경험으로 사람이나 세상을 믿지 못하고 끊임없이 경계하며 스스로 보호하기 위해 벽을 치는 상태입니다."
+      }
+    };
+
+    // 질문 목록 (각 선택지는 특정 결핍 유형에 점수를 부여함)
+    const questions = [
+      {
+        question: "1. 누군가 나에게 먼저 연락을 주지 않거나 관심이 줄어들면 어떤 생각이 드나요?",
+        options: [
+          { text: "나를 사랑하지 않는 것 같아 불안하거나 완전히 관계를 끊고 싶다.", type: "affection" },
+          { text: "내가 무언가 잘못했거나 능력이 부족해서 나를 무시한다고 생각한다.", type: "recognition" },
+          { text: "역시 나는 어디에도 어울리지 못하는 존재라는 외로움이 든다.", type: "isolation" },
+          { text: "저 사람이 속으로 나를 속이거나 이용하려는 건 아닌지 의심된다.", type: "trust" }
+        ]
+      },
+      {
+        question: "2. 무언가 중요한 결정을 내려야 할 때 나는 보통 어떻게 행동하나요?",
+        options: [
+          { text: "혼자 결정하는 것이 너무 두려워 주변 사람에게 완전히 의지한다.", type: "dependency" },
+          { text: "내가 한 결정이 틀렸을까 봐 스스로를 믿지 못하고 계속 불안해한다.", type: "selfesteem" },
+          { text: "남들의 칭찬과 인정을 받을 수 있는 방향을 최우선으로 선택한다.", type: "recognition" },
+          { text: "어차피 세상에 내 마음을 완전히 이해해 줄 사람은 없다고 느낀다.", type: "selfobject" }
+        ]
+      },
+      {
+        question: "3. 사람들 속에서 내가 가장 자주 느끼는 감정이나 생각은 어떤 것인가요?",
+        options: [
+          { text: "세상과 단절된 것 같고 마음속 한구석이 텅 빈 것처럼 공허하다.", type: "selfobject" },
+          { text: "언제 나를 배신할지 모르니 늘 경계하고 방어적인 태도를 취한다.", type: "trust" },
+          { text: "나의 부족한 모습이나 단점이 드러날까 봐 늘 숨기고 싶고 불안하다.", type: "selfesteem" },
+          { text: "나만 혼자 이 무리에 겉돌고 있다는 소외감을 깊게 느낀다.", type: "isolation" }
+        ]
+      },
+      {
+        question: "4. 누군가가 나에게 도움이나 칭찬을 건넬 때 나의 반응에 가까운 것은?",
+        options: [
+          { text: "그 칭찬이 내 가치를 증명해 주는 것 같아 매우 집착하게 된다.", type: "recognition" },
+          { text: "순수한 호의로 느끼지 못하고 상대방의 의도를 끊임없이 의심한다.", type: "trust" },
+          { text: "나 같은 사람에게 과분하다 느끼거나 내 진가를 몰라서 하는 소리 같다.", type: "selfesteem" },
+          { text: "상대방의 애정을 더 얻기 위해 과도하게 관심을 갈구하게 된다.", type: "affection" }
+        ]
+      },
+      {
+        question: "5. 혼자서 일이나 일상을 처리할 때 느끼는 감정은 어떠한가요?",
+        options: [
+          { text: "누군가 옆에서 도와주지 않으면 아무것도 할 수 없을 것 같다.", type: "dependency" },
+          { text: "사람들과 어울리지 못하고 항상 홀로 남겨진 듯한 깊은 외로움을 느낀다.", type: "isolation" },
+          { text: "나를 진정으로 비춰주고 공감해 주는 대상이 없어 공허함을 느낀다.", type: "selfobject" },
+          { text: "상대방이 나를 떠나버릴까 봐 늘 불안해하거나 거리를 둔다.", type: "affection" }
+        ]
+      },
+      {
+        question: "6. 내가 타인이나 사회에 대해 거부감(혐오/경계)을 느낄 때는 언제인가요?",
+        options: [
+          { text: "나를 인정해 주지 않거나 내 성과를 무시할 때", type: "recognition" },
+          { text: "나를 속이려 하거나 거짓된 모습을 보일 때", type: "trust" },
+          { text: "혼자 판단하고 책임져야 하는 상황에 직면했을 때", type: "dependency" },
+          { text: "나의 불완전함이나 단점을 가리기 위해 상대를 거부할 때", type: "selfesteem" }
+        ]
+      },
+      {
+        question: "7. 나에게 가장 필요한 내면의 '토닥임(돌봄)'은 무엇이라고 생각하나요?",
+        options: [
+          { text: "조건 없는 따뜻한 사랑과 과도한 집착을 내려놓는 안정감", type: "affection" },
+          { text: "내 존재 그 자체에 대한 따뜻한 공감과 공허함을 채워줄 반응", type: "selfobject" },
+          { text: "어디에나 속할 수 있다는 안도감과 외로움을 없애주는 동질감", type: "isolation" },
+          { text: "스스로 일어서고 내 삶의 주체가 될 수 있다는 자신감", type: "dependency" }
+        ]
+      }
+    ];
+
+    let currentQuestionIndex = 0;
+    let scores = {
+      affection: 0,
+      recognition: 0,
+      isolation: 0,
+      selfesteem: 0,
+      dependency: 0,
+      selfobject: 0,
+      trust: 0
+    };
+
+    function startTest() {
+      document.getElementById('start-screen').classList.remove('active');
+      document.getElementById('question-screen').classList.add('active');
+      currentQuestionIndex = 0;
+      resetScores();
+      showQuestion();
+    }
+
+    function resetScores() {
+      for (let key in scores) {
+        scores[key] = 0;
+      }
+    }
+
+    function showQuestion() {
+      const q = questions[currentQuestionIndex];
+      document.getElementById('question-text').innerText = q.question;
+      
+      const optionsContainer = document.getElementById('options-container');
+      optionsContainer.innerHTML = '';
+
+      q.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerText = opt.text;
+        btn.onclick = () => selectOption(opt.type);
+        optionsContainer.appendChild(btn);
+      });
+
+      // 프로그레스 바 업데이트
+      const progressPercent = ((currentQuestionIndex + 1) / questions.length) * 100;
+      document.getElementById('progress').style.width = `${progressPercent}%`;
+    }
+
+    function selectOption(type) {
+      scores[type] += 1;
+      currentQuestionIndex++;
+
+      if (currentQuestionIndex < questions.length) {
+        showQuestion();
+      } else {
+        showResult();
+      }
+    }
+
+    function showResult() {
+      document.getElementById('question-screen').classList.remove('active');
+      document.getElementById('result-screen').classList.add('active');
+
+      // 점수가 가장 높은 유형 추출
+      let highestType = 'affection';
+      let maxScore = -1;
+
+      for (let type in scores) {
+        if (scores[type] > maxScore) {
+          maxScore = scores[type];
+          highestType = type;
+        }
+      }
+
+      const resultData = types[highestType];
+      document.getElementById('result-title').innerText = resultData.name;
+      document.getElementById('result-symbol').innerText = `${resultData.code} - ${resultData.animal}`;
+      document.getElementById('result-desc').innerText = resultData.desc;
+    }
+
+    function restartTest() {
+      document.getElementById('result-screen').classList.remove('active');
+      document.getElementById('start-screen').classList.add('active');
+      document.getElementById('progress').style.width = '0%';
+    }
+  </script>
+</body>
+</html>
