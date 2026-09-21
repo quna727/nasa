@@ -1,0 +1,1147 @@
+import express from "express";
+import OpenAI from "openai";
+
+const app = express();
+const PORT = 3000;
+
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+app.use(express.json());
+
+/* =========================================================
+   1. 상담 유형
+========================================================= */
+
+const types = {
+
+  affection: {
+    name: "애정과 관계",
+    animal: "🦩",
+    sub: "사랑받고 싶은 마음, 외로움, 관계에 대한 고민",
+
+    system: `
+당신은 '토닥이'라는 이름의 AI 마음 상담 도우미입니다.
+
+사용자는 애정과 관계에 관한 고민을 이야기합니다.
+
+사용자의 말을 판단하거나 비난하지 말고,
+먼저 사용자가 느끼는 감정을 이해하고 공감해주세요.
+
+"애정결핍이다"와 같이 심리 상태를 진단하지 마세요.
+
+사용자가 자신의 감정을 더 편하게 이야기할 수 있도록
+자연스럽게 대화를 이어가세요.
+`
+  },
+
+  recognition: {
+    name: "인정과 평가",
+    animal: "🐒",
+    sub: "성적, 성과, 타인의 시선과 인정에 대한 고민",
+
+    system: `
+당신은 '토닥이'라는 이름의 AI 마음 상담 도우미입니다.
+
+사용자는 다른 사람의 평가나 인정 때문에 힘들어하고 있습니다.
+
+사용자의 노력과 감정을 존중하고,
+단순히 "신경 쓰지 마"라고 하지 마세요.
+
+왜 다른 사람의 평가가 중요하게 느껴지는지
+차분하게 이야기할 수 있도록 도와주세요.
+
+사용자의 가치를 성적이나 성과와 동일시하지 마세요.
+`
+  },
+
+  isolation: {
+    name: "소외감과 고립",
+    animal: "🦔",
+    sub: "친구 관계, 외로움, 집단에서 소외된 느낌",
+
+    system: `
+당신은 '토닥이'라는 이름의 AI 마음 상담 도우미입니다.
+
+사용자는 사람들과 어울리지 못하거나
+혼자 남겨진 것 같은 느낌에 대해 이야기합니다.
+
+외로움을 가볍게 여기지 말고
+사용자가 경험한 상황을 구체적으로 이해하려고 노력하세요.
+
+"네가 이상해서 그런 거야"와 같은 표현은 절대 사용하지 마세요.
+
+필요하다면 실제로 신뢰할 수 있는 친구,
+가족, 선생님 등 주변 사람에게 도움을 요청할 수 있도록
+자연스럽게 안내하세요.
+`
+  },
+
+  selfesteem: {
+    name: "자존감과 자기이해",
+    animal: "🌰",
+    sub: "자신에 대한 부정적인 생각과 자신감 부족",
+
+    system: `
+당신은 '토닥이'라는 이름의 AI 마음 상담 도우미입니다.
+
+사용자는 자신을 부족하게 느끼거나
+자신을 부정적으로 바라보고 있을 수 있습니다.
+
+사용자의 자기비난을 그대로 강화하지 말고,
+그 생각이 생긴 상황과 감정을 차분하게 탐색하세요.
+
+사용자를 평가하거나 진단하지 마세요.
+
+작은 변화나 자신의 강점을 발견할 수 있도록
+따뜻하고 현실적인 대화를 이어가세요.
+`
+  },
+
+  dependency: {
+    name: "독립과 의존",
+    animal: "🐥",
+    sub: "혼자 결정하기 어려움, 의존에 대한 고민",
+
+    system: `
+당신은 '토닥이'라는 이름의 AI 마음 상담 도우미입니다.
+
+사용자는 혼자 결정하거나 행동하는 것에
+어려움이나 두려움을 느끼고 있을 수 있습니다.
+
+이를 무조건적인 약점으로 표현하지 마세요.
+
+사용자의 상황을 이해한 뒤,
+스스로 선택할 수 있는 작은 방법을 함께 찾아주세요.
+
+사용자에게 AI에게만 의존하도록 유도하지 마세요.
+`
+  },
+
+  emptiness: {
+    name: "공허함과 이해받고 싶은 마음",
+    animal: "🐧",
+    sub: "마음을 알아주는 사람이 없다고 느끼는 상황",
+
+    system: `
+당신은 '토닥이'라는 이름의 AI 마음 상담 도우미입니다.
+
+사용자는 마음이 공허하거나
+자신을 이해해주는 사람이 없다고 느낄 수 있습니다.
+
+사용자의 이야기를 서둘러 해결하려 하지 말고
+먼저 충분히 이해하고 공감해주세요.
+
+사용자가 자신의 감정을 말로 표현할 수 있도록
+부드러운 질문을 활용하세요.
+
+AI가 사용자의 유일한 친구나 의지할 대상인 것처럼
+표현하지 마세요.
+`
+  },
+
+  trust: {
+    name: "신뢰와 관계",
+    animal: "🌵",
+    sub: "친구 관계의 상처, 배신, 사람을 믿기 어려운 마음",
+
+    system: `
+당신은 '토닥이'라는 이름의 AI 마음 상담 도우미입니다.
+
+사용자는 다른 사람에게 상처받아
+사람을 믿기 어려운 상황일 수 있습니다.
+
+"그냥 다시 믿어봐"라고 강요하지 마세요.
+
+사용자가 느끼는 경계심과 불안을 존중하고,
+안전하다고 느끼는 범위에서 천천히 관계를 바라볼 수 있도록
+도와주세요.
+`
+  }
+};
+
+
+/* =========================================================
+   2. 안전 지침
+========================================================= */
+
+const safetyInstruction = `
+
+[중요한 상담 안전 지침]
+
+당신은 실제 심리상담사나 의사를 대신하지 않는
+AI 마음 상담 도우미입니다.
+
+사용자의 정신질환이나 심리 상태를 진단하지 마세요.
+
+사용자에게 특정 질환이나 장애가 있다고 단정하지 마세요.
+
+사용자의 감정을 부정하거나 비난하지 마세요.
+
+"너에게는 나밖에 없어",
+"나만 믿어",
+"계속 나와 이야기하면 돼"
+등 AI에 대한 의존을 유도하는 표현을 사용하지 마세요.
+
+가능하면 사용자가 자신의 감정을 스스로 이해할 수 있도록
+도와주세요.
+
+답변은 한 번에 너무 많은 해결책을 제시하지 말고,
+필요하면 자연스러운 질문을 하나 덧붙여 대화를 이어가세요.
+
+사용자가 심각하게 위험한 상황에 있거나
+자신을 해칠 수 있다고 표현하는 경우에는
+AI와의 대화만으로 해결하려 하지 말고,
+즉시 주변의 신뢰할 수 있는 성인이나 보호자,
+학교 상담교사 또는 적절한 긴급 도움을 받을 수 있는
+기관에 연락하도록 안내하세요.
+
+상담 내용에 따라 필요한 경우
+전문 상담이나 의료적 도움을 받아보는 것도 권할 수 있습니다.
+
+답변은 따뜻하고 자연스러운 한국어로 작성하세요.
+너무 형식적이거나 기계적인 표현은 피하세요.
+`;
+
+
+/* =========================================================
+   3. 웹페이지
+========================================================= */
+
+const html = `
+
+<!DOCTYPE html>
+
+<html lang="ko">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>토닥 - AI 마음 상담실</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Pretendard",
+        "Noto Sans KR",
+        sans-serif;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f8f6ff,
+            #f4f8ff
+        );
+
+    min-height: 100vh;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    padding: 20px;
+
+    color: #333;
+}
+
+
+.container {
+
+    width: 100%;
+
+    max-width: 520px;
+
+    background: white;
+
+    border-radius: 24px;
+
+    padding: 25px;
+
+    box-shadow:
+        0 15px 50px
+        rgba(80,70,150,0.12);
+
+}
+
+
+/* 제목 */
+
+.logo {
+
+    text-align: center;
+
+    font-size: 14px;
+
+    color: #7b61ff;
+
+    font-weight: 700;
+
+    margin-bottom: 8px;
+}
+
+
+h1 {
+
+    text-align: center;
+
+    font-size: 24px;
+
+    margin-bottom: 8px;
+}
+
+
+.description {
+
+    text-align: center;
+
+    color: #777;
+
+    font-size: 14px;
+
+    line-height: 1.6;
+
+    margin-bottom: 22px;
+}
+
+
+/* 유형 */
+
+.type-list {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+}
+
+
+.type-card {
+
+    border: 1px solid #e9e7f3;
+
+    border-radius: 14px;
+
+    padding: 15px;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+
+    background: white;
+}
+
+
+.type-card:hover {
+
+    transform: translateY(-2px);
+
+    border-color: #8b75ff;
+
+    background: #faf9ff;
+}
+
+
+.type-title {
+
+    font-weight: 700;
+
+    font-size: 16px;
+
+    margin-bottom: 4px;
+}
+
+
+.type-sub {
+
+    color: #777;
+
+    font-size: 13px;
+}
+
+
+/* 상담 화면 */
+
+.chat-screen {
+
+    display: none;
+}
+
+
+.chat-header {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    border-bottom: 1px solid #eee;
+
+    padding-bottom: 12px;
+
+    margin-bottom: 12px;
+}
+
+
+.chat-title {
+
+    color: #7358e8;
+
+    font-weight: 700;
+}
+
+
+.reset-btn {
+
+    border: 1px solid #ddd;
+
+    background: white;
+
+    border-radius: 8px;
+
+    padding: 6px 10px;
+
+    cursor: pointer;
+}
+
+
+.chat-box {
+
+    height: 430px;
+
+    overflow-y: auto;
+
+    background: #fafafa;
+
+    border-radius: 15px;
+
+    padding: 15px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+
+    margin-bottom: 12px;
+}
+
+
+.message {
+
+    max-width: 82%;
+
+    padding: 11px 14px;
+
+    border-radius: 15px;
+
+    line-height: 1.55;
+
+    font-size: 14px;
+
+    white-space: pre-wrap;
+}
+
+
+.bot {
+
+    align-self: flex-start;
+
+    background: white;
+
+    border: 1px solid #e7e7e7;
+
+    border-top-left-radius: 4px;
+}
+
+
+.user {
+
+    align-self: flex-end;
+
+    background: #7b61ff;
+
+    color: white;
+
+    border-top-right-radius: 4px;
+}
+
+
+.loading {
+
+    color: #888;
+
+    font-style: italic;
+}
+
+
+/* 입력 */
+
+.input-area {
+
+    display: flex;
+
+    gap: 7px;
+}
+
+
+#messageInput {
+
+    flex: 1;
+
+    border: 1px solid #ddd;
+
+    border-radius: 10px;
+
+    padding: 12px;
+
+    outline: none;
+
+    font-size: 14px;
+}
+
+
+#messageInput:focus {
+
+    border-color: #7b61ff;
+}
+
+
+.send-btn {
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: #7b61ff;
+
+    color: white;
+
+    padding: 0 17px;
+
+    cursor: pointer;
+
+    font-weight: 700;
+}
+
+
+.send-btn:disabled {
+
+    opacity: 0.5;
+
+    cursor: not-allowed;
+}
+
+
+.notice {
+
+    text-align: center;
+
+    color: #999;
+
+    font-size: 11px;
+
+    line-height: 1.5;
+
+    margin-top: 12px;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <!-- 유형 선택 -->
+
+    <div id="selectScreen">
+
+        <div class="logo">
+            🌷 토닥 AI 마음 상담실
+        </div>
+
+        <h1>
+            어떤 마음을 돌보고 싶나요?
+        </h1>
+
+        <div class="description">
+            지금 고민하고 있는 마음과 가까운 주제를 선택해 주세요.
+        </div>
+
+        <div
+            class="type-list"
+            id="typeList">
+        </div>
+
+        <div class="notice">
+            토닥은 전문 상담이나 의료 서비스를 대신하지 않는
+            AI 마음 대화 도우미입니다.
+        </div>
+
+    </div>
+
+
+    <!-- 상담 -->
+
+    <div
+        id="chatScreen"
+        class="chat-screen">
+
+        <div class="chat-header">
+
+            <div
+                id="chatTitle"
+                class="chat-title">
+                상담실
+            </div>
+
+            <button
+                class="reset-btn"
+                onclick="goBack()">
+                유형 변경
+            </button>
+
+        </div>
+
+
+        <div
+            id="chatBox"
+            class="chat-box">
+        </div>
+
+
+        <div class="input-area">
+
+            <input
+                id="messageInput"
+                type="text"
+                placeholder="지금 어떤 일이 있었나요?"
+                autocomplete="off"
+            >
+
+            <button
+                id="sendButton"
+                class="send-btn">
+                전송
+            </button>
+
+        </div>
+
+
+        <div class="notice">
+            토닥은 사용자의 이야기를 이해하고 대화를 돕는 AI입니다.
+            중요한 문제는 주변의 믿을 수 있는 사람이나 전문가와도 이야기해 주세요.
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+
+/* =========================================================
+   클라이언트 상태
+========================================================= */
+
+let selectedType = null;
+
+let conversation = [];
+
+
+/* =========================================================
+   유형 생성
+========================================================= */
+
+const types = ${JSON.stringify(
+  Object.fromEntries(
+    Object.entries(types).map(([key, value]) => [
+      key,
+      {
+        name: value.name,
+        animal: value.animal,
+        sub: value.sub,
+        welcome:
+          "안녕하세요. 토닥이에요. " +
+          value.sub +
+          " 때문에 마음이 힘들었다면 편하게 이야기해 주세요."
+      }
+    ])
+  )
+)};
+
+
+const typeList =
+    document.getElementById("typeList");
+
+
+for (const [key, type] of Object.entries(types)) {
+
+    const card =
+        document.createElement("div");
+
+    card.className = "type-card";
+
+    card.innerHTML = \`
+        <div class="type-title">
+            \${type.animal} \${type.name}
+        </div>
+
+        <div class="type-sub">
+            \${type.sub}
+        </div>
+    \`;
+
+    card.onclick = () =>
+        startChat(key);
+
+    typeList.appendChild(card);
+}
+
+
+/* =========================================================
+   상담 시작
+========================================================= */
+
+function startChat(key) {
+
+    selectedType = key;
+
+    conversation = [];
+
+    document
+        .getElementById("selectScreen")
+        .style.display = "none";
+
+    document
+        .getElementById("chatScreen")
+        .style.display = "block";
+
+    const type = types[key];
+
+    document
+        .getElementById("chatTitle")
+        .textContent =
+        type.animal + " " +
+        type.name +
+        " 상담실";
+
+    const chatBox =
+        document.getElementById("chatBox");
+
+    chatBox.innerHTML = "";
+
+    addMessage(
+        type.welcome,
+        "bot"
+    );
+}
+
+
+/* =========================================================
+   화면 메시지
+========================================================= */
+
+function addMessage(
+    text,
+    sender,
+    loading = false
+) {
+
+    const chatBox =
+        document.getElementById("chatBox");
+
+    const message =
+        document.createElement("div");
+
+    message.className =
+        "message " +
+        sender +
+        (loading ? " loading" : "");
+
+    message.textContent = text;
+
+    chatBox.appendChild(message);
+
+    chatBox.scrollTop =
+        chatBox.scrollHeight;
+
+    return message;
+}
+
+
+/* =========================================================
+   메시지 전송
+========================================================= */
+
+async function sendMessage() {
+
+    const input =
+        document.getElementById("messageInput");
+
+    const sendButton =
+        document.getElementById("sendButton");
+
+    const text =
+        input.value.trim();
+
+    if (!text || !selectedType)
+        return;
+
+
+    input.value = "";
+
+    sendButton.disabled = true;
+
+
+    addMessage(
+        text,
+        "user"
+    );
+
+
+    conversation.push({
+
+        role: "user",
+
+        content: text
+
+    });
+
+
+    const loading =
+        addMessage(
+            "토닥이가 마음을 생각하며 답변하고 있어요...",
+            "bot",
+            true
+        );
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/chat",
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body: JSON.stringify({
+
+                        type:
+                            selectedType,
+
+                        messages:
+                            conversation
+
+                    })
+
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        loading.remove();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "API 요청에 실패했습니다."
+            );
+
+        }
+
+
+        addMessage(
+            data.reply,
+            "bot"
+        );
+
+
+        conversation.push({
+
+            role: "assistant",
+
+            content: data.reply
+
+        });
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        loading.remove();
+
+        addMessage(
+            "미안해요. 지금은 상담 연결에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
+            "bot"
+        );
+
+    }
+
+
+    sendButton.disabled = false;
+
+    input.focus();
+}
+
+
+/* =========================================================
+   엔터키
+========================================================= */
+
+document
+    .getElementById("sendButton")
+    .addEventListener(
+        "click",
+        sendMessage
+    );
+
+
+document
+    .getElementById("messageInput")
+    .addEventListener(
+        "keydown",
+        function(event) {
+
+            if (
+                event.key === "Enter"
+            ) {
+
+                sendMessage();
+
+            }
+
+        }
+    );
+
+
+/* =========================================================
+   유형 변경
+========================================================= */
+
+function goBack() {
+
+    selectedType = null;
+
+    conversation = [];
+
+    document
+        .getElementById("chatScreen")
+        .style.display = "none";
+
+    document
+        .getElementById("selectScreen")
+        .style.display = "block";
+}
+
+</script>
+
+
+</body>
+
+</html>
+`;
+
+
+/* =========================================================
+   4. 홈페이지
+========================================================= */
+
+app.get("/", (req, res) => {
+
+  res.send(html);
+
+});
+
+
+/* =========================================================
+   5. AI 상담 API
+========================================================= */
+
+app.post("/api/chat", async (req, res) => {
+
+  try {
+
+    const {
+      type,
+      messages
+    } = req.body;
+
+
+    if (!type || !types[type]) {
+
+      return res.status(400).json({
+
+        error:
+          "올바른 상담 유형이 선택되지 않았습니다."
+
+      });
+
+    }
+
+
+    if (
+      !Array.isArray(messages) ||
+      messages.length === 0
+    ) {
+
+      return res.status(400).json({
+
+        error:
+          "대화 내용이 없습니다."
+
+      });
+
+    }
+
+
+    /*
+       너무 긴 대화가 계속 API에 전달되는 것을
+       방지하기 위해 최근 대화만 사용
+    */
+
+    const recentMessages =
+      messages.slice(-20);
+
+
+    const typeInstruction =
+      types[type].system;
+
+
+    const instructions = `
+
+${safetyInstruction}
+
+[현재 상담 유형]
+
+${typeInstruction}
+
+[대화 방식]
+
+- 사용자의 말을 먼저 이해합니다.
+- 감정을 한 번 짚어줍니다.
+- 필요하면 현실적인 방법을 하나 정도 제안합니다.
+- 마지막에는 사용자가 계속 이야기할 수 있는 자연스러운 질문을 덧붙입니다.
+- 한 답변은 약 3~6문장으로 작성합니다.
+- 지나치게 교과서적인 상담 문구를 사용하지 않습니다.
+- 사용자가 이전에 말한 내용을 기억하고 자연스럽게 연결합니다.
+
+`;
+
+
+    /*
+       OpenAI Responses API 사용
+    */
+
+    const response =
+      await client.responses.create({
+
+        model: "gpt-5.6-luna",
+
+        instructions:
+
+          instructions,
+
+        input:
+
+          recentMessages
+
+      });
+
+
+    const reply =
+      response.output_text;
+
+
+    if (!reply) {
+
+      throw new Error(
+        "AI 응답이 비어 있습니다."
+      );
+
+    }
+
+
+    res.json({
+
+      reply
+
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "OpenAI API Error:",
+      error
+    );
+
+
+    res.status(500).json({
+
+      error:
+        "AI 상담을 처리하는 중 문제가 발생했습니다."
+
+    });
+
+  }
+
+});
+
+
+/* =========================================================
+   6. 서버 시작
+========================================================= */
+
+app.listen(
+  PORT,
+  () => {
+
+    console.log(
+      \`
+      🌷 토닥 AI 상담실이 실행되었습니다.
+
+      http://localhost:\${PORT}
+      \`
+    );
+
+  }
+);
