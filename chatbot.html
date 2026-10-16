@@ -13,14 +13,70 @@
 </div></main>
 <script>
 // 이미지 파일은 chatbot.html과 같은 위치의 images 폴더에 넣으세요.
-const characters=[
- {key:'affection',name:'꼬꼬',topic:'애정',image:'images/kokko.png',color:'#e985b1',desc:'사랑과 관심이 필요하다고 느껴질 때',welcome:'안녕! 나는 꼬꼬야. 요즘 누군가의 관심이나 다정한 말이 그리웠니? 어떤 마음인지 들려줄래?'},
- {key:'recognition',name:'끼끼',topic:'인정',image:'images/kikki.png',color:'#c8833c',desc:'인정받고 싶은 마음이 커질 때',welcome:'안녕! 나는 끼끼야. 다른 사람의 평가 때문에 마음이 복잡했니? 무슨 일이 있었는지 이야기해 줘.'},
- {key:'isolation',name:'또치',topic:'소외감',image:'images/ttochi.png',color:'#8074bc',desc:'어딘가에 혼자 남겨진 것 같을 때',welcome:'안녕, 나는 또치야. 요즘 친구들 사이에서 혼자인 것처럼 느껴진 적 있어? 천천히 이야기해도 괜찮아.'},
- {key:'selfesteem',name:'밤또리',topic:'생각',image:'images/bamtori.png',color:'#9b552b',desc:'나 자신에 대한 생각이 복잡할 때',welcome:'안녕! 나는 밤또리야. 요즘 어떤 생각이 가장 마음에 걸려? 같이 차근차근 살펴보자.'},
- {key:'dependency',name:'삐약',topic:'결정',image:'images/ppiyak.png',color:'#dc9b20',desc:'선택하고 결정하기가 어려울 때',welcome:'삐약! 나는 삐약이야. 어떤 선택을 앞두고 고민 중이니? 네 마음이 원하는 걸 같이 찾아보자.'},
- {key:'selfobject',name:'펭펭',topic:'공허함',image:'images/pengpeng.png',color:'#26a6b4',desc:'마음 한구석이 허전하게 느껴질 때',welcome:'안녕, 나는 펭펭이야. 이유 없이 허전하거나 마음을 알아주는 사람이 없다고 느껴질 때가 있지? 지금 기분은 어때?'},
- {key:'trust',name:'까까',topic:'신뢰',image:'images/kkakka.png',color:'#64a645',desc:'누군가를 믿는 일이 어려울 때',welcome:'안녕! 나는 까까야. 누군가를 믿기 어려워진 일이 있었니? 말하고 싶은 만큼만 들려줘.'}
+const characters = [
+  {
+    key: 'affection',
+    name: '꼬꼬',
+    topic: '애정',
+    image: 'kokko.png',
+    color: '#e985b1',
+    desc: '사랑과 관심이 필요하다고 느껴질 때',
+    welcome: '안녕! 나는 꼬꼬야. 요즘 누군가의 관심이나 다정한 말이 그리웠니? 어떤 마음인지 들려줄래?'
+  },
+  {
+    key: 'recognition',
+    name: '끼끼',
+    topic: '인정',
+    image: 'kikki.png',
+    color: '#c8833c',
+    desc: '인정받고 싶은 마음이 커질 때',
+    welcome: '안녕! 나는 끼끼야. 다른 사람의 평가 때문에 마음이 복잡했니? 무슨 일이 있었는지 이야기해 줘.'
+  },
+  {
+    key: 'isolation',
+    name: '또치',
+    topic: '소외감',
+    image: 'ttochi.png',
+    color: '#8074bc',
+    desc: '어딘가에 혼자 남겨진 것 같을 때',
+    welcome: '안녕, 나는 또치야. 요즘 친구들 사이에서 혼자인 것처럼 느껴진 적 있어? 천천히 이야기해도 괜찮아.'
+  },
+  {
+    key: 'selfesteem',
+    name: '밤또리',
+    topic: '생각',
+    image: 'bamtori.png',
+    color: '#9b552b',
+    desc: '나 자신에 대한 생각이 복잡할 때',
+    welcome: '안녕! 나는 밤또리야. 요즘 어떤 생각이 가장 마음에 걸려? 같이 차근차근 살펴보자.'
+  },
+  {
+    key: 'dependency',
+    name: '삐약',
+    topic: '결정',
+    image: 'ppiyak.png',
+    color: '#dc9b20',
+    desc: '선택하고 결정하기가 어려울 때',
+    welcome: '삐약! 나는 삐약이야. 어떤 선택을 앞두고 고민 중이니? 네 마음이 원하는 걸 같이 찾아보자.'
+  },
+  {
+    key: 'selfobject',
+    name: '펭펭',
+    topic: '공허함',
+    image: 'pengpeng.png',
+    color: '#26a6b4',
+    desc: '마음 한구석이 허전하게 느껴질 때',
+    welcome: '안녕, 나는 펭펭이야. 이유 없이 허전하거나 마음을 알아주는 사람이 없다고 느껴질 때가 있지? 지금 기분은 어때?'
+  },
+  {
+    key: 'trust',
+    name: '까까',
+    topic: '신뢰',
+    image: 'kkakka.png',
+    color: '#64a645',
+    desc: '누군가를 믿는 일이 어려울 때',
+    welcome: '안녕! 나는 까까야. 누군가를 믿기 어려워진 일이 있었니? 말하고 싶은 만큼만 들려줘.'
+  }
 ];
 let current=null,history=[],busy=false;
 const $=id=>document.getElementById(id);
